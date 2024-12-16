@@ -99,8 +99,11 @@ const HomeScreen = () => {
     }
   };
 
-  const sendAudioToWhisper = async (uri: string, retries = 5) => {
+  const sendAudioToWhisper = async (uri: string, retries = 3) => {
     const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+  
+    const globalDelay = 500; 
+    await delay(globalDelay);
   
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
@@ -122,7 +125,8 @@ const HomeScreen = () => {
             },
           }
         );
-        return response.data.text; // Success
+  
+        return response.data.text;
       } catch (error) {
         if (axios.isAxiosError(error) && error.response?.status === 429) {
           if (attempt === retries) {
@@ -132,8 +136,9 @@ const HomeScreen = () => {
             );
             break;
           }
-          const backoffTime = 2000 * attempt; // Increase wait time per attempt
-          console.warn(`Retrying in ${backoffTime / 1000} seconds...`);
+  
+          const backoffTime = Math.pow(2, attempt) * 1000; 
+          console.warn(`Rate limit reached. Retrying in ${backoffTime / 1000} seconds...`);
           await delay(backoffTime);
         } else {
           console.error("Whisper API Error:", error);
@@ -142,9 +147,10 @@ const HomeScreen = () => {
         }
       }
     }
-    return null; // Return null if all retries fail
+    return null; 
   };
-  
+
+
   const sendToGpt = async (inputText: string) => {
     try {
       const controller = new AbortController();
@@ -152,8 +158,11 @@ const HomeScreen = () => {
         controller.abort();
         setLoading(false);
         Alert.alert("Timeout", "The server took too long to respond.");
-      }, 10000); // 10-second timeout
-
+      }, 10000); 
+  
+      const globalDelay = 500; 
+      await new Promise((resolve) => setTimeout(resolve, globalDelay));
+  
       const response = await axios.post(
         "https://api.openai.com/v1/chat/completions",
         {
@@ -178,7 +187,7 @@ const HomeScreen = () => {
         }
       );
       clearTimeout(timeout);
-
+  
       const aiResponse = response.data.choices[0].message.content;
       setText(aiResponse);
       setAIResponse(true);
@@ -190,7 +199,7 @@ const HomeScreen = () => {
       Alert.alert("Error", "Failed to get AI response.");
     }
   };
-
+    
   const speakText = (text: string) => {
     setAISpeaking(true);
     Speech.speak(text, {
